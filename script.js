@@ -307,7 +307,7 @@ function closeAllConnections() {
 // إعداد اتصال Socket.io
 function setupSocketConnection() {
     // استبدل هذا العنوان بعنوان خادم الإشارة الخاص بك
-    socket = io('https://your-signaling-server.com') ;
+    socket = io('https://secure-chat-bx6u.onrender.com') ;
     
     socket.on('connect', () => {
         console.log('Connected to signaling server');
