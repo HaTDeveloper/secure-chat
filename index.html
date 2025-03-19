@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محادثات آمنة ومشفرة</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>محادثات آمنة ومشفرة</h1>
+            <p>تواصل بخصوصية تامة - لا بيانات مخزنة - تشفير كامل</p>
+        </header>
+        
+        <main>
+            <div id="welcome-screen" class="screen active">
+                <div class="welcome-box">
+                    <h2>أهلاً بك في منصة المحادثات الآمنة</h2>
+                    <p>جميع المحادثات مشفرة ولا يتم تخزينها على الخوادم</p>
+                    <div class="button-group">
+                        <button id="create-room-btn" class="btn primary-btn">إنشاء غرفة محادثة</button>
+                        <button id="join-room-btn" class="btn secondary-btn">الانضمام إلى غرفة</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="create-room-screen" class="screen">
+                <div class="form-box">
+                    <h2>إنشاء غرفة محادثة جديدة</h2>
+                    <div class="form-group">
+                        <label for="room-name">اسم الغرفة (اختياري) </label>
+                        <input type="text" id="room-name" placeholder="اسم الغرفة">
+                    </div>
+                    <div class="form-group">
+                        <label for="message-timeout">مدة بقاء الرسائل (بالدقائق)</label>
+                        <select id="message-timeout">
+                            <option value="5">5 دقائق</option>
+                            <option value="10">10 دقائق</option>
+                            <option value="30">30 دقيقة</option>
+                            <option value="60">ساعة واحدة</option>
+                            <option value="0">لا تنتهي</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button id="create-room-submit" class="btn primary-btn">إنشاء الغرفة</button>
+                        <button class="btn back-btn">رجوع</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="join-room-screen" class="screen">
+                <div class="form-box">
+                    <h2>الانضمام إلى غرفة محادثة</h2>
+                    <div class="form-group">
+                        <label for="room-id">معرف الغرفة</label>
+                        <input type="text" id="room-id" placeholder="أدخل معرف الغرفة">
+                    </div>
+                    <div class="button-group">
+                        <button id="join-room-submit" class="btn primary-btn">انضمام</button>
+                        <button class="btn back-btn">رجوع</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="chat-screen" class="screen">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h2 id="room-title">غرفة المحادثة</h2>
+                        <div class="room-info">
+                            <span id="room-id-display"></span>
+                            <button id="copy-room-id" class="icon-btn" title="نسخ معرف الغرفة">📋</button>
+                        </div>
+                        <div class="encryption-status secure">
+                            <span class="status-icon">🔒</span>
+                            <span class="status-text">محادثة مشفرة</span>
+                        </div>
+                    </div>
+                    
+                    <div class="messages-container" id="messages">
+                        <div class="system-message">
+                            <p>تم إنشاء الغرفة وتأمينها بنجاح. يمكنك الآن بدء المحادثة.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="message-input">
+                        <textarea id="message-text" placeholder="اكتب رسالتك هنا..."></textarea>
+                        <button id="send-message" class="btn send-btn">إرسال</button>
+                    </div>
+                    
+                    <div class="chat-footer">
+                        <button id="leave-room" class="btn danger-btn">مغادرة الغرفة</button>
+                        <div class="timeout-info">
+                            <span>الرسائل تختفي بعد: </span>
+                            <span id="timeout-value">10 دقائق</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>جميع المحادثات مشفرة من طرف إلى طرف ولا يتم تخزينها على الخوادم</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
