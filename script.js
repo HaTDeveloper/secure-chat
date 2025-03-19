@@ -7,13 +7,20 @@ let localStream = null;
 let peerConnections = {};
 let isAudioMuted = false;
 let isSpeakerOn = true;
+let socket = null;
+let localUserId = null;
 
 // ===== إعدادات WebRTC =====
 const configuration = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        { urls: 'stun:stun2.l.google.com:19302' },
+        {
+            urls: 'turn:numb.viagenie.ca',
+            credential: 'muazkh',
+            username: 'webrtc@live.com'
+        }
     ]
 };
 
@@ -75,6 +82,11 @@ function updateConnectionStatus(status, isError = false) {
 function addParticipant(id, name = 'مشارك') {
     const participantsContainer = document.getElementById('participants');
     
+    // تحقق مما إذا كان المشارك موجوداً بالفعل
+    if (document.getElementById(`participant-${id}`)) {
+        return;
+    }
+    
     const participantElement = document.createElement('div');
     participantElement.classList.add('participant');
     participantElement.id = `participant-${id}`;
@@ -131,6 +143,12 @@ async function getLocalAudio() {
 
 // إنشاء اتصال نظير
 function createPeerConnection(peerId) {
+    if (peerConnections[peerId]) {
+        console.log('Peer connection already exists for:', peerId);
+        return peerConnections[peerId];
+    }
+    
+    console.log('Creating new peer connection for:', peerId);
     const peerConnection = new RTCPeerConnection(configuration);
     peerConnections[peerId] = peerConnection;
     
@@ -142,8 +160,10 @@ function createPeerConnection(peerId) {
     // معالجة حدث ice candidate
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            // في تطبيق حقيقي، أرسل candidate إلى الطرف الآخر عبر خادم الإشارة
-            console.log('New ICE candidate:', event.candidate);
+            socket.emit('ice-candidate', {
+                to: peerId,
+                candidate: event.candidate
+            });
         }
     };
     
@@ -160,11 +180,14 @@ function createPeerConnection(peerId) {
     
     // معالجة حدث استلام مسار
     peerConnection.ontrack = event => {
+        console.log('Received remote track from:', peerId);
+        
         // إضافة المشارك الجديد
         addParticipant(peerId);
         
         // إضافة الصوت إلى عنصر الصوت
         const audioElement = document.createElement('audio');
+        audioElement.id = `audio-${peerId}`;
         audioElement.srcObject = event.streams[0];
         audioElement.autoplay = true;
         document.body.appendChild(audioElement);
@@ -175,14 +198,18 @@ function createPeerConnection(peerId) {
 
 // إنشاء عرض
 async function createOffer(peerId) {
+    console.log('Creating offer for:', peerId);
     const peerConnection = createPeerConnection(peerId);
     
     try {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
         
-        // في تطبيق حقيقي، أرسل العرض إلى الطرف الآخر عبر خادم الإشارة
-        console.log('Created offer:', offer);
+        socket.emit('offer', {
+            to: peerId,
+            offer: offer
+        });
+        
         return offer;
     } catch (error) {
         console.error('Error creating offer:', error);
@@ -193,6 +220,7 @@ async function createOffer(peerId) {
 
 // معالجة العرض المستلم
 async function handleOffer(peerId, offer) {
+    console.log('Handling offer from:', peerId);
     const peerConnection = createPeerConnection(peerId);
     
     try {
@@ -200,8 +228,11 @@ async function handleOffer(peerId, offer) {
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         
-        // في تطبيق حقيقي، أرسل الإجابة إلى الطرف الآخر عبر خادم الإشارة
-        console.log('Created answer:', answer);
+        socket.emit('answer', {
+            to: peerId,
+            answer: answer
+        });
+        
         return answer;
     } catch (error) {
         console.error('Error handling offer:', error);
@@ -212,6 +243,7 @@ async function handleOffer(peerId, offer) {
 
 // معالجة الإجابة المستلمة
 async function handleAnswer(peerId, answer) {
+    console.log('Handling answer from:', peerId);
     const peerConnection = peerConnections[peerId];
     if (!peerConnection) {
         console.error('No peer connection for:', peerId);
@@ -230,6 +262,7 @@ async function handleAnswer(peerId, answer) {
 
 // معالجة ICE candidate المستلم
 async function handleIceCandidate(peerId, candidate) {
+    console.log('Handling ICE candidate from:', peerId);
     const peerConnection = peerConnections[peerId];
     if (!peerConnection) {
         console.error('No peer connection for:', peerId);
@@ -257,10 +290,94 @@ function closeAllConnections() {
     });
     
     peerConnections = {};
+    
+    // إزالة جميع عناصر الصوت
+    document.querySelectorAll('audio').forEach(audio => {
+        audio.remove();
+    });
+    
+    // إذا كان Socket متصلاً، قم بإرسال حدث المغادرة
+    if (socket && roomId) {
+        socket.emit('leave-room', { roomId });
+    }
+}
+
+// ===== وظائف Socket.io =====
+
+// إعداد اتصال Socket.io
+function setupSocketConnection() {
+    // استبدل هذا العنوان بعنوان خادم الإشارة الخاص بك
+    socket = io('https://your-signaling-server.com') ;
+    
+    socket.on('connect', () => {
+        console.log('Connected to signaling server');
+        localUserId = socket.id;
+        console.log('Local user ID:', localUserId);
+    });
+    
+    socket.on('user-joined', async ({ userId }) => {
+        console.log('User joined:', userId);
+        addParticipant(userId);
+        updateConnectionStatus('مشارك جديد انضم إلى المكالمة');
+        
+        // إنشاء عرض للمستخدم الجديد
+        await createOffer(userId);
+    });
+    
+    socket.on('user-left', ({ userId }) => {
+        console.log('User left:', userId);
+        removeParticipant(userId);
+        
+        // إغلاق اتصال النظير
+        if (peerConnections[userId]) {
+            peerConnections[userId].close();
+            delete peerConnections[userId];
+        }
+        
+        // إزالة عنصر الصوت
+        const audioElement = document.getElementById(`audio-${userId}`);
+        if (audioElement) {
+            audioElement.remove();
+        }
+        
+        updateConnectionStatus('غادر أحد المشاركين المكالمة');
+    });
+    
+    socket.on('offer', async ({ from, offer }) => {
+        console.log('Received offer from:', from);
+        await handleOffer(from, offer);
+    });
+    
+    socket.on('answer', async ({ from, answer }) => {
+        console.log('Received answer from:', from);
+        await handleAnswer(from, answer);
+    });
+    
+    socket.on('ice-candidate', async ({ from, candidate }) => {
+        console.log('Received ICE candidate from:', from);
+        await handleIceCandidate(from, candidate);
+    });
+    
+    socket.on('room-full', () => {
+        updateConnectionStatus('الغرفة ممتلئة. يرجى المحاولة مرة أخرى لاحقاً.', true);
+    });
+}
+
+// الانضمام إلى غرفة
+function joinRoom(roomId) {
+    if (!socket) {
+        console.error('Socket connection not established');
+        return;
+    }
+    
+    socket.emit('join-room', { roomId });
 }
 
 // ===== معالجات الأحداث =====
 document.addEventListener('DOMContentLoaded', () => {
+    // إعداد اتصال Socket.io
+    setupSocketConnection();
+    
     // بدء مكالمة صوتية
     document.getElementById('start-voice-btn').addEventListener('click', async () => {
         const roomIdInput = document.getElementById('room-id-input').value.trim();
@@ -272,17 +389,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updateConnectionStatus('جاري الاتصال...');
             await getLocalAudio();
             
-            // في تطبيق حقيقي، هنا ستتصل بخادم الإشارة وتنضم إلى الغرفة
+            // الانضمام إلى الغرفة
+            joinRoom(roomId);
             
             switchScreen('voice-screen');
             startCallTimer();
-            
-            // محاكاة الاتصال الناجح بعد ثانيتين
-            setTimeout(() => {
-                updateConnectionStatus('متصل');
-                // محاكاة إضافة مشارك آخر
-                addParticipant('remote-1', 'مشارك 1');
-            }, 2000);
             
         } catch (error) {
             console.error('Failed to start call:', error);
@@ -307,6 +418,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             this.textContent = isAudioMuted ? '🔊 إلغاء الكتم' : '🔇 كتم';
             updateParticipantStatus('local', false, isAudioMuted);
+            
+            // إرسال حالة الكتم إلى المشاركين الآخرين
+            if (socket) {
+                socket.emit('mute-status', {
+                    roomId,
+                    isMuted: isAudioMuted
+                });
+            }
         }
     });
     
@@ -314,9 +433,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('speaker-btn').addEventListener('click', function() {
         isSpeakerOn = !isSpeakerOn;
         
-        // في تطبيق حقيقي، هنا ستتحكم في مستوى صوت عناصر الصوت
         document.querySelectorAll('audio').forEach(audio => {
-            audio.muted = !isSpeakerOn;
+            if (audio.id !== 'audio-local') {
+                audio.muted = !isSpeakerOn;
+            }
         });
         
         this.textContent = isSpeakerOn ? '🔊 مكبر الصوت' : '🔈 إيقاف مكبر الصوت';
@@ -330,5 +450,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('participants').innerHTML = '';
             switchScreen('welcome-screen');
         }
+    });
+    
+    // معالجة حدث إغلاق النافذة
+    window.addEventListener('beforeunload', () => {
+        closeAllConnections();
     });
 });
