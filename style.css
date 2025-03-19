@@ -67,12 +67,12 @@ footer {
 
 /* ===== الأزرار ===== */
 .btn {
-    padding: 12px 24px;
+    padding: 15px 30px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-family: 'Tajawal', sans-serif;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 500;
     transition: all 0.3s ease;
 }
@@ -101,25 +101,15 @@ footer {
 .danger-btn {
     background-color: var(--danger-color);
     color: var(--text-color);
-}
-
-.back-btn {
-    background-color: transparent;
-    color: var(--accent-color);
-}
-
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
+    padding: 8px 15px;
+    font-size: 0.9rem;
 }
 
 .button-group {
     display: flex;
-    gap: 15px;
+    gap: 20px;
     justify-content: center;
-    margin-top: 20px;
+    margin-top: 30px;
 }
 
 /* ===== الشاشات ===== */
@@ -135,7 +125,7 @@ footer {
 .welcome-box {
     background-color: var(--secondary-color);
     border-radius: 8px;
-    padding: 40px;
+    padding: 50px;
     text-align: center;
     max-width: 600px;
     margin: 0 auto;
@@ -144,48 +134,13 @@ footer {
 
 .welcome-box h2 {
     margin-bottom: 20px;
-    font-size: 1.8rem;
+    font-size: 2rem;
 }
 
 .welcome-box p {
     margin-bottom: 30px;
     color: var(--accent-color);
-}
-
-/* ===== نماذج ===== */
-.form-box {
-    background-color: var(--secondary-color);
-    border-radius: 8px;
-    padding: 30px;
-    max-width: 500px;
-    margin: 0 auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.form-box h2 {
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 12px;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Tajawal', sans-serif;
+    font-size: 1.2rem;
 }
 
 /* ===== شاشة المحادثة ===== */
@@ -209,12 +164,6 @@ footer {
 
 .chat-header h2 {
     font-size: 1.4rem;
-}
-
-.room-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
 .encryption-status {
@@ -303,17 +252,92 @@ footer {
     color: var(--bg-color);
 }
 
-.chat-footer {
-    padding: 10px 15px;
+/* ===== شاشة المكالمة الصوتية ===== */
+.voice-container {
+    background-color: var(--secondary-color);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 80vh;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.voice-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--border-color);
-    font-size: 0.9rem;
 }
 
-.timeout-info {
-    color: var(--accent-color);
+.voice-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.call-status {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.call-icon {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    animation: pulse 1.5s infinite;
+}
+
+.call-timer {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.call-quality {
+    color: var(--success-color);
+}
+
+.call-controls {
+    display: flex;
+    gap: 20px;
+}
+
+.call-btn {
+    padding: 15px 25px;
+    border-radius: 50px;
+    border: none;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.call-btn:hover {
+    background-color: var(--accent-color);
+}
+
+.end-call {
+    background-color: var(--danger-color);
+}
+
+.end-call:hover {
+    background-color: #d32f2f;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* ===== تحسينات للأجهزة المحمولة ===== */
@@ -322,19 +346,19 @@ footer {
         padding: 10px;
     }
     
-    .welcome-box, .form-box {
-        padding: 20px;
-    }
-    
-    .chat-container {
-        height: 85vh;
+    .welcome-box {
+        padding: 30px 20px;
     }
     
     .button-group {
         flex-direction: column;
     }
     
-    .message {
-        max-width: 90%;
+    .chat-container, .voice-container {
+        height: 85vh;
+    }
+    
+    .call-controls {
+        flex-direction: column;
     }
 }
