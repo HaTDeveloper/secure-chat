@@ -1,31 +1,15 @@
 // ===== المتغيرات العامة =====
 let currentScreen = 'welcome-screen';
-let currentRoomId = null;
-let encryptionKey = null;
-let messageTimeout = 10; // الوقت الافتراضي بالدقائق
+let callTimer = null;
+let callSeconds = 0;
 
 // ===== وظائف المساعدة =====
 
-// إنشاء معرف فريد
-function generateUniqueId() {
-    return Math.random().toString(36).substring(2, 15) + 
-           Math.random().toString(36).substring(2, 15);
-}
-
-// إنشاء مفتاح تشفير
-function generateEncryptionKey() {
-    return CryptoJS.lib.WordArray.random(16).toString();
-}
-
-// تشفير الرسالة
-function encryptMessage(message, key) {
-    return CryptoJS.AES.encrypt(message, key).toString();
-}
-
-// فك تشفير الرسالة
-function decryptMessage(encryptedMessage, key) {
-    const bytes = CryptoJS.AES.decrypt(encryptedMessage, key);
-    return bytes.toString(CryptoJS.enc.Utf8);
+// تبديل الشاشات
+function switchScreen(screenId) {
+    document.querySelector(`.screen.active`).classList.remove('active');
+    document.getElementById(screenId).classList.add('active');
+    currentScreen = screenId;
 }
 
 // تنسيق الوقت
@@ -36,134 +20,79 @@ function formatTime(date) {
     });
 }
 
-// تبديل الشاشات
-function switchScreen(screenId) {
-    document.querySelector(`.screen.active`).classList.remove('active');
-    document.getElementById(screenId).classList.add('active');
-    currentScreen = screenId;
+// تنسيق مؤقت المكالمة
+function formatCallTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
 // إضافة رسالة إلى المحادثة
-function addMessageToChat(message, sender, encrypted = true) {
+function addMessageToChat(message, sender) {
     const messagesContainer = document.getElementById('messages');
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
     
-    if (sender === 'me') {
-        messageElement.classList.add('sent');
-    } else if (sender === 'system') {
+    if (sender === 'system') {
         const systemMessage = document.createElement('div');
         systemMessage.classList.add('system-message');
         systemMessage.innerHTML = `<p>${message}</p>`;
         messagesContainer.appendChild(systemMessage);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return;
-    } else {
-        messageElement.classList.add('received');
     }
     
-    // فك تشفير الرسالة إذا كانت مشفرة
-    let displayMessage = message;
-    if (encrypted && encryptionKey && sender !== 'me') {
-        try {
-            displayMessage = decryptMessage(message, encryptionKey);
-        } catch (e) {
-            displayMessage = "❌ فشل في فك تشفير الرسالة";
-        }
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+    
+    if (sender === 'me') {
+        messageElement.classList.add('sent');
+    } else {
+        messageElement.classList.add('received');
     }
     
     const now = new Date();
     
     messageElement.innerHTML = `
         <div class="message-bubble">
-            ${displayMessage}
+            ${message}
         </div>
         <div class="message-time">${formatTime(now)}</div>
     `;
     
     messagesContainer.appendChild(messageElement);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// بدء مؤقت المكالمة
+function startCallTimer() {
+    callSeconds = 0;
+    document.getElementById('call-timer').textContent = formatCallTime(callSeconds);
     
-    // إعداد مؤقت لحذف الرسالة إذا كان هناك مهلة
-    if (messageTimeout > 0) {
-        setTimeout(() => {
-            messageElement.classList.add('fading');
-            setTimeout(() => {
-                messagesContainer.removeChild(messageElement);
-            }, 500);
-        }, messageTimeout * 60 * 1000); // تحويل الدقائق إلى مللي ثانية
+    callTimer = setInterval(() => {
+        callSeconds++;
+        document.getElementById('call-timer').textContent = formatCallTime(callSeconds);
+    }, 1000);
+}
+
+// إيقاف مؤقت المكالمة
+function stopCallTimer() {
+    if (callTimer) {
+        clearInterval(callTimer);
+        callTimer = null;
     }
 }
 
 // ===== معالجات الأحداث =====
 document.addEventListener('DOMContentLoaded', () => {
-    // أزرار الشاشة الرئيسية
-    document.getElementById('create-room-btn').addEventListener('click', () => {
-        switchScreen('create-room-screen');
-    });
-    
-    document.getElementById('join-room-btn').addEventListener('click', () => {
-        switchScreen('join-room-screen');
-    });
-    
-    // أزرار الرجوع
-    document.querySelectorAll('.back-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            switchScreen('welcome-screen');
-        });
-    });
-    
-    // إنشاء غرفة جديدة
-    document.getElementById('create-room-submit').addEventListener('click', () => {
-        const roomName = document.getElementById('room-name').value || 'غرفة محادثة آمنة';
-        messageTimeout = parseInt(document.getElementById('message-timeout').value);
-        
-        // إنشاء معرف الغرفة ومفتاح التشفير
-        currentRoomId = generateUniqueId();
-        encryptionKey = generateEncryptionKey();
-        
-        // تحديث واجهة المستخدم
-        document.getElementById('room-title').textContent = roomName;
-        document.getElementById('room-id-display').textContent = `معرف الغرفة: ${currentRoomId}`;
-        document.getElementById('timeout-value').textContent = 
-            messageTimeout > 0 ? `${messageTimeout} دقائق` : 'لا تنتهي';
-        
-        // الانتقال إلى شاشة المحادثة
+    // بدء محادثة نصية فورية
+    document.getElementById('start-chat-btn').addEventListener('click', () => {
         switchScreen('chat-screen');
-        
-        // إضافة رسالة نظام
-        addMessageToChat('تم إنشاء الغرفة وتأمينها بنجاح. شارك معرف الغرفة مع الشخص الذي تريد التحدث معه.', 'system');
-        addMessageToChat(`مفتاح التشفير: ${encryptionKey}`, 'system');
-        addMessageToChat('لا تشارك هذا المفتاح مع أي شخص آخر!', 'system');
+        addMessageToChat('تم إنشاء محادثة آمنة ومشفرة. يمكنك الآن بدء المحادثة.', 'system');
     });
     
-    // الانضمام إلى غرفة
-    document.getElementById('join-room-submit').addEventListener('click', () => {
-        const roomId = document.getElementById('room-id').value.trim();
-        
-        if (!roomId) {
-            alert('الرجاء إدخال معرف الغرفة');
-            return;
-        }
-        
-        // في تطبيق حقيقي، هنا ستتحقق من وجود الغرفة على الخادم
-        currentRoomId = roomId;
-        
-        // طلب مفتاح التشفير
-        const key = prompt('أدخل مفتاح التشفير الذي شاركه معك منشئ الغرفة:');
-        if (key) {
-            encryptionKey = key;
-            
-            // تحديث واجهة المستخدم
-            document.getElementById('room-title').textContent = 'غرفة محادثة آمنة';
-            document.getElementById('room-id-display').textContent = `معرف الغرفة: ${currentRoomId}`;
-            
-            // الانتقال إلى شاشة المحادثة
-            switchScreen('chat-screen');
-            
-            // إضافة رسالة نظام
-            addMessageToChat('تم الانضمام إلى الغرفة بنجاح.', 'system');
-        }
+    // بدء مكالمة صوتية فورية
+    document.getElementById('start-voice-btn').addEventListener('click', () => {
+        switchScreen('voice-screen');
+        startCallTimer();
     });
     
     // إرسال رسالة
@@ -172,16 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!messageText) return;
         
-        // في تطبيق حقيقي، هنا سترسل الرسالة المشفرة إلى الخادم
-        const encryptedMessage = encryptMessage(messageText, encryptionKey);
-        
         // إضافة الرسالة إلى المحادثة
-        addMessageToChat(messageText, 'me', false);
+        addMessageToChat(messageText, 'me');
         
-        // محاكاة استلام الرد (في تطبيق حقيقي، هذا سيأتي من الخادم)
+        // محاكاة استلام الرد
         setTimeout(() => {
-            // هنا نتظاهر بأن الرسالة المشفرة قد وصلت من الطرف الآخر
-            addMessageToChat(encryptedMessage, 'other');
+            addMessageToChat('تم استلام رسالتك بنجاح. هذه محادثة آمنة ومشفرة.', 'other');
         }, 1000);
         
         // مسح حقل الإدخال
@@ -196,23 +121,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // نسخ معرف الغرفة
-    document.getElementById('copy-room-id').addEventListener('click', () => {
-        const roomIdText = currentRoomId;
-        navigator.clipboard.writeText(roomIdText).then(() => {
-            alert('تم نسخ معرف الغرفة إلى الحافظة');
-        });
-    });
-    
-    // مغادرة الغرفة
-    document.getElementById('leave-room').addEventListener('click', () => {
-        if (confirm('هل أنت متأكد من رغبتك في مغادرة الغرفة؟')) {
-            currentRoomId = null;
-            encryptionKey = null;
+    // إنهاء المحادثة
+    document.getElementById('leave-chat').addEventListener('click', () => {
+        if (confirm('هل أنت متأكد من رغبتك في إنهاء المحادثة؟')) {
             switchScreen('welcome-screen');
             
             // إعادة تعيين شاشة المحادثة
             document.getElementById('messages').innerHTML = '';
+        }
+    });
+    
+    // أزرار المكالمة الصوتية
+    document.getElementById('mute-btn').addEventListener('click', function() {
+        this.textContent = this.textContent.includes('كتم') ? '🔊 إلغاء الكتم' : '🔇 كتم';
+    });
+    
+    document.getElementById('speaker-btn').addEventListener('click', function() {
+        this.textContent = this.textContent.includes('مكبر') ? '🔈 إلغاء مكبر الصوت' : '🔊 مكبر الصوت';
+    });
+    
+    document.getElementById('end-call-btn').addEventListener('click', () => {
+        if (confirm('هل أنت متأكد من رغبتك في إنهاء المكالمة؟')) {
+            stopCallTimer();
+            switchScreen('welcome-screen');
         }
     });
 });
